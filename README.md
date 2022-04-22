@@ -5,7 +5,7 @@
 This webapp is a simple working chat room.
 
 ### How to use?
-Download the files, open with Xamp, Wamp, or PHP -S or you can run it on the server.
+Download the files, open with Xamp, Wamp or you can run it on your server.
 
 ## Get Started:
 1. Open the Website.
