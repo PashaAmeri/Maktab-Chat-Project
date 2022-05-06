@@ -1,6 +1,6 @@
 <?php
 
-//this page is for Routing user
+//this page is for Routing users
 $user_exist = false;
 
 date_default_timezone_set("iran");
@@ -16,46 +16,84 @@ if (isset($_COOKIE['user_token'])) {
 
     $token = explode(":", $_COOKIE['user_token']);
 
-    $users_json = file_get_contents("../../data/users/users.json");
-    $users_json = json_decode($users_json, true);
+    $db_user = 'root';
+    $db_password = '1234';
 
-    for ($i = 0; $i < sizeof($users_json); $i++) {
+    $db_host = 'localhost';
+    $db_name = 'chat_project';
 
-        if ($users_json[$i]['token']['usertoken'] === $token[0] and $users_json[$i]['token']['validator'] === $token[1]) {
+    $db_dsn = "mysql:host=" . $db_host . ";dbname=" . $db_name;
 
-            $_SESSION["username"] = $users_json[$i]['user_name'];
-            $_SESSION["id"] = $users_json[$i]['id'];
-            $_SESSION["name"] = $users_json[$i]['name'];
-            $_SESSION["email"] = $users_json[$i]['email'];
-            $_SESSION["profile_pic"] = $users_json[$i]['profile_pic'];
+    $pdo = new PDO($db_dsn, $db_user, $db_password);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
-            if ($users_json[$i]['nickname'] !== "") {
+    $stm = $pdo->prepare("SELECT * FROM `token` WHERE token = :token AND validator = :validator");
+    $stm->execute(['token' => $token[0], 'validator' => $token[1]]);
 
-                $_SESSION["nickname"] = $users_json[$i]['nickname'];
+    $token_db = $stm->fetch();
+
+    var_dump($token_db);
+
+
+    if ($token_db['token'] === $token[0] and $token_db['validator'] === $token[1]) {
+
+        $date = date("Y-m-d H:i:s");
+
+        //get user data from db
+
+        $stm = $pdo->prepare("SELECT * FROM `users` WHERE ID = ?");
+        $stm->execute([$token_db['user_id']]);
+
+        $user_db = $stm->fetch();
+
+        var_dump($user_db);
+
+        //get profile pics
+
+        $stm = $pdo->prepare("SELECT address FROM `profile_pics` WHERE user_id = ?");
+        $stm->execute([$token_db['user_id']]);
+
+        var_dump($pics_db = $stm->fetchAll());
+
+        $_SESSION["username"] = $user_db['username'];
+        $_SESSION["id"] = $user_db['ID'];
+        $_SESSION["name"] = $user_db['name'];
+        $_SESSION["email"] = $user_db['email'];
+
+        if ($pics_db) {
+
+            foreach ($pics_db as $pic) {
+
+                $_SESSION["profile_pic"][] = $pic['address'];
             }
-
-            if ($users_json[$i]['phone_number'] !== "") {
-
-                $_SESSION["phone_number"] = $users_json[$i]['phone_number'];
-            }
-
-            if ($users_json[$i]['about'] !== "") {
-
-                $_SESSION["about"] = $users_json[$i]['about'];
-            }
-
-            $users_json[$i]['last_login'] = date("Y-m-d H:i:s");
-
-            $users_json = json_encode($users_json, JSON_PRETTY_PRINT);
-            file_put_contents("../../data/users/users.json", $users_json);
-
-            $user_exist = true;
-
-            break;
         } else {
 
-            $user_exist = false;
+            $_SESSION["profile_pic"] = [];
         }
+
+        if ($user_db['nickname'] !== "") {
+
+            $_SESSION["nickname"] = $user_db['nickname'];
+        }
+
+        if ($user_db['phone_number'] !== "") {
+
+            $_SESSION["phone_number"] = $user_db['phone_number'];
+        }
+
+        if ($user_db['about'] !== "") {
+
+            $_SESSION["about"] = $user_db['about'];
+        }
+
+        // updating last login in db
+        $stm = $pdo->prepare("UPDATE `users` SET last_login = ?");
+        $stm->execute([$date]);
+
+        $user_exist = true;
+    } else {
+
+        $user_exist = false;
     }
 }
 
@@ -64,10 +102,12 @@ if ($user_exist) {
     $_SESSION['status'] = true;
 
     header("location: ../../index.php");
+    exit;
 } else {
 
     session_destroy();
     setcookie('user_token', "", time() - 1, "/");
 
     header("location: ../../login.php");
+    exit;
 }
