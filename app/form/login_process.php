@@ -18,43 +18,60 @@ if (isset($_POST['login'])) {
     $password = in_check($password);
     $remember = in_check($remember);
 
-    $users_json = file_get_contents("../../data/users/users.json");
-    $users_json = json_decode($users_json, true);
+    //database connections
 
-    for ($i = 0; $i < sizeof($users_json); $i++) {
+    $db_user = 'root';
+    $db_password = '1234';
 
-        if ($users_json[$i]['user_name'] === $username) {
+    $db_host = 'localhost';
+    $db_name = 'chat_project';
 
-            $user_exist = true;
+    $db_dsn = "mysql:host=" . $db_host . ";dbname=" . $db_name;
 
-            if (password_verify($password, $users_json[$i]['password'])) {
+    $pdo = new PDO($db_dsn, $db_user, $db_password);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
-                $users_json[$i]['token']['validator'] = rand_str("validator");
-                $users_json[$i]['last_login'] = date("Y-m-d H:i:s");
+    $stm = $pdo->prepare("SELECT * FROM users WHERE username = ?");
+    $stm->execute([$username]);
 
-                if ($remember === "on") {
+    if ($user_db = $stm->fetch()) {
 
-                    setcookie("user_token", $users_json[$i]['token']['usertoken'] . ":" . $users_json[$i]['token']['validator'], time() + (((60 * 60) * 24) * 30) * 6, "/");
-                }
+        $user_exist = true;
 
-                $_SESSION["username"] = $users_json[$i]['user_name'];
-                $_SESSION["id"] = $users_json[$i]['id'];
-                $_SESSION["name"] = $users_json[$i]['name'];
-                $_SESSION["email"] = $users_json[$i]['email'];
-                $_SESSION["nickname"] = $users_json[$i]['nickname'];
-                $_SESSION["phone_number"] = $users_json[$i]['phone_number'];
+        $date = date("Y-m-d H:i:s");
 
-                $users_json = json_encode($users_json, JSON_PRETTY_PRINT);
-                file_put_contents("../../data/users/users.json", $users_json);
+        var_dump($user_db);
 
-                $user_exist = true;
-                break;
-            } else {
+        if (password_verify($password, $user_db['password'])) {
 
-                $user_exist = false;
+            // $user_db['last_login'] = $date;
+
+            $new_validator =  hash('sha256', rand_str("validator"));
+
+            $stm = $pdo->prepare("UPDATE token SET validator = :validator WHERE user_id = :id");
+            $stm->execute(['validator' => $new_validator, 'id' => $user_db['ID']]);
+
+            $stm = $pdo->prepare("SELECT * FROM token WHERE `user_id` = ?");
+            $stm->execute([$user_db['ID']]);
+
+            var_dump($token_db = $stm->fetch());
+
+            if ($remember === "on") {
+
+                setcookie("user_token", $token_db['token'] . ":" . $token_db['validator'], time() + (((60 * 60) * 24) * 30) * 6, "/");
             }
 
-            break;
+            $_SESSION["username"] = $user_db['username'];
+            $_SESSION["id"] = $user_db['ID'];
+            $_SESSION["name"] = $user_db['name'];
+            $_SESSION["email"] = $user_db['email'];
+            $_SESSION["nickname"] = $user_db['nickname'];
+            $_SESSION["phone_number"] = $user_db['phone_number'];
+
+            $user_exist = true;
+        } else {
+
+            $user_exist = false;
         }
     }
 
