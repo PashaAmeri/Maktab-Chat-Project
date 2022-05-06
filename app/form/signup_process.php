@@ -108,7 +108,7 @@ if (isset($_POST['signup'])) {
 
             //public chat
 
-            $stm = $pdo->prepare("INSERT INTO `chats_members` (chat_id , `user_id` , role , join_date) VALUES (:chat , :user , :role , :date)");
+            $stm = $pdo->prepare("INSERT INTO `chats_members` (`chat_id` , `user_id` , `role` , `join_date`) VALUES (:chat , :user , :role , :date)");
             $stm->execute(['chat' => 1, 'user' => $id['ID'], 'role' => 'member', 'date' => $date]);
 
             //send a message to others new user joined
