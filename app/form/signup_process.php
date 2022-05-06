@@ -33,6 +33,7 @@ if (isset($_POST['signup'])) {
         session_destroy();
 
         header("location: ../../signup.php?error=true");
+        exit;
     } else {
 
         if ($password === $passwordCon) {
@@ -43,6 +44,7 @@ if (isset($_POST['signup'])) {
             session_destroy();
 
             header("location: ../../signup.php?error=true&type=password_not_match");
+            exit;
         }
     }
 
@@ -56,113 +58,74 @@ if (isset($_POST['signup'])) {
         $token = hashed_str();
         $password = password_hash($password, PASSWORD_DEFAULT);
 
-        $user = [
-            "token" => [
-                'usertoken' => $token[0],
-                'validator' => $token[1]
-            ],
-            "id" => $id = rand_str('id'),
+        //db connection using pdo
 
-            'user_name' => $username,
-            'password' => $password,
+        $db_user = 'root';
+        $db_password = '1234';
 
-            'name' => $name,
-            'email' => $email,
+        $db_host = 'localhost';
+        $db_name = 'chat_project';
 
-            'nickname' => "",
-            'phone_number' => "",
-            'profile_pic' => [],
-            'about' => "",
+        $db_dsn = "mysql:host=" . $db_host . ";dbname=" . $db_name;
 
-            'last_login' => "$date",
+        $pdo = new PDO($db_dsn, $db_user, $db_password);
+        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
-            'register_date' => $date,
-            'policy' => true
-        ];
+        $stm = $pdo->prepare('SELECT username FROM users WHERE username = ?');
+        $stm->execute([$username]);
 
-        var_dump($user);
+        if ($users_db = $stm->fetch()) {
 
-        $users_json = file_get_contents('../../data/users/users.json');
-        $users_json = json_decode($users_json, true);
+            $condition = false;
+        } else {
 
-        for ($i = 0; $i < sizeof($users_json); $i++) {
-
-            if ($users_json[$i]['user_name'] === $username) {
-
-                $condition = false;
-                break;
-            } else {
-
-                $condition = true;
-            }
+            $condition = true;
         }
 
         if ($condition) {
 
-            $users_json[] = $user;
-            $users_json = json_encode($users_json, JSON_PRETTY_PRINT);
+            var_dump($users_db);
+
+            $stm = $pdo->prepare("INSERT INTO `users` (username , name , email , password , register_date , last_login) VALUES (:username , :name , :email , :password , :date1 , :date2)");
+            $stm->execute(['username' => $username, 'name' => $name, 'email' => $email, 'password' => $password, 'date1' => $date, 'date2' => $date]);
+
+            $stm = $pdo->prepare("SELECT ID FROM `users` WHERE username = ?");
+            $stm->execute([$username]);
+
+            $id = $stm->fetch();
+            var_dump($id);
+
+            mkdir("../../data/users/users_files/" . $id['ID'] . "/", 0777);
+            mkdir("../../data/users/users_files/" . $id['ID'] . "/profile_pics", 0777);
+            mkdir("../../data/users/users_files/" . $id['ID'] . "/files", 0777);
+
+            //to set token cookie for staying logqed in
 
             setcookie("user_token", "$token[0]:$token[1]", time() + (((60 * 60) * 24) * 30) * 6, "/");
 
-            file_put_contents("../../data/users/users.json", $users_json);
-            mkdir("../../data/users/users_files/" . $id . "/", 0777);
-            mkdir("../../data/users/users_files/" . $id . "/chats", 0777);
-            mkdir("../../data/users/users_files/" . $id . "/profile_pics", 0777);
-            mkdir("../../data/users/users_files/" . $id . "/files", 0777);
+            $stm = $pdo->prepare("INSERT INTO `token` (`user_id` , `token` , `validator`) VALUES (:user , :token , :validator)");
+            $stm->execute(['user' => $id['ID'], 'token' => $token[0], 'validator' => $token[1]]);
 
             //public chat
 
-            $public_chat_member = [
-                'id' => $id,
-                'user_name' => $username,
-                'name' => $name,
-                'role' => "member",
-                'nickname' => "",
-                'join_date' => $date
-            ];
-
-            $members_json = file_get_contents("../../data/users/groups/public_1/members.json");
-            $members_json = json_decode($members_json);
-
-            $members_json[] = $public_chat_member;
-
-            $members_json = json_encode($members_json, JSON_PRETTY_PRINT);
-            file_put_contents("../../data/users/groups/public_1/members.json", $members_json);
-
-            //adding public chat to profile
-            $f_public = fopen("../../data/users/users_files/$id/chats/public_1.json", "w");
-            fwrite($f_public, '[{"name":"Public","type":"group"}]');
-
-            fclose($f_public);
+            $stm = $pdo->prepare("INSERT INTO `chats_members` (chat_id , `user_id` , role , join_date) VALUES (:chat , :user , :role , :date)");
+            $stm->execute(['chat' => 1, 'user' => $id['ID'], 'role' => 'member', 'date' => $date]);
 
             //send a message to others new user joined
 
-            $messages_json = file_get_contents("../../data/users/groups/public_1/messages.json");
-            $messages_json = json_decode($messages_json, true);
-
-            $i = sizeof($messages_json);
-            $message_id = $messages_json[$i - 1];
-
-            $system_message_join = [
-                'id' => "system",
-                'message_number' => ($message_id['message_number'] + 1),
-                "date" => $date,
-                'message' => "$name joined the chat!",
-            ];
-
-            $messages_json[] = $system_message_join;
-
-            $messages_json = json_encode($messages_json, JSON_PRETTY_PRINT);
-            file_put_contents("../../data/users/groups/public_1/messages.json", $messages_json);
+            $stm = $pdo->prepare("INSERT INTO `messages` (`from_id` , `to_id` , `message` , `date`) VALUES (:from , :to , :message , :date)");
+            $stm->execute(['from' => 0, 'to' => '1', 'message' => "$name joined the chat!", 'date' => $date]);
 
             // user created and moving to index page
             header("location: ../router/router.php");
+            exit;
         } else {
 
             session_destroy();
 
             // user exist => going back to sign up page
             header("location: ../../signup.php?error=true&type=user_exist");
+            exit;
         }
     }
 }
