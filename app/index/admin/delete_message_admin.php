@@ -11,36 +11,31 @@ if (!empty($_POST)) {
 
     $message_number = in_check($_POST['id']);
 
-    $members_json = file_get_contents("../../../data/users/groups/public_1/members.json");
-    $members_json = json_decode($members_json, true);
+    //connectig to db
 
-    foreach ($members_json as $member) {
+    $db_user = 'root';
+    $db_password = '1234';
 
-        if ($member['id'] === $_SESSION['id'] and $member['role'] === "admin") {
+    $db_host = 'localhost';
+    $db_name = 'chat_project';
 
-            $admin_validation = true;
-            continue;
-        }
+    $db_dsn = "mysql:host=" . $db_host . ";dbname=" . $db_name;
 
-        if ($member['id'] !== $_SESSION['id']) {
+    $pdo = new PDO($db_dsn, $db_user, $db_password);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
-            $messages_json = file_get_contents("../../../data/users/groups/public_1/messages.json");
-            $messages_json = json_decode($messages_json, true);
+    //check for user
+    $stm = $pdo->prepare("SELECT role FROM chats_members WHERE user_id = :id");
+    $stm->execute(['id' => $_SESSION['id']]);
 
-            foreach ($messages_json as $message) {
+    $is_admin = $stm->fetch();
 
-                if ($message['message_number'] != $message_number) {
+    if ($is_admin['role'] === 'admin') {
 
-                    $out_put_messages[] = $message;
-                }
-            }
-
-            break;
-        }
+        //deleting message from db
+        $stm = $pdo->prepare("DELETE FROM `messages` WHERE ID = :message_id");
+        $stm->execute(['message_id' => $message_number]);
     }
-
-    $out_put_messages = json_encode($out_put_messages, JSON_PRETTY_PRINT);
-    file_put_contents("../../../data/users/groups/public_1/messages.json", $out_put_messages);
 
     echo "done";
 }

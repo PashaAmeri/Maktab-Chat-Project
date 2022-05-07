@@ -7,35 +7,33 @@ session_start();
 
 if (!empty($_POST)) {
 
-    $blocked = false;
-    $admin_validation = false;
-
     $username = in_check($_POST['user']);
 
-    $members_json = file_get_contents("../../../data/users/groups/public_1/members.json");
-    $members_json = json_decode($members_json, true);
+    //connectig to db
 
-    foreach ($members_json as $member) {
+    $db_user = 'root';
+    $db_password = '1234';
 
-        if ($member['id'] === $_SESSION['id'] and $member['role'] === "admin") {
+    $db_host = 'localhost';
+    $db_name = 'chat_project';
 
-            $admin_validation = true;
-        }
+    $db_dsn = "mysql:host=" . $db_host . ";dbname=" . $db_name;
 
-        if ($member['user_name'] === $username) {
+    $pdo = new PDO($db_dsn, $db_user, $db_password);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
-            $member['role'] = "block";
-            $blocked = true;
-        }
+    //check for user
+    $stm = $pdo->prepare("SELECT role FROM chats_members WHERE user_id = :id");
+    $stm->execute(['id' => $_SESSION['id']]);
 
-        $users_b[] = $member;
+    $is_admin = $stm->fetch();
+
+    if ($is_admin['role'] === 'admin') {
+
+        //deleting message from db
+        $stm = $pdo->prepare("UPDATE `chats_members` SET `role` = 'block' WHERE `chats_members`.`user_id` = ?;");
+        $stm->execute([$username]);
     }
 
-    if ($blocked and $admin_validation) {
-
-        $users_b = json_encode($users_b, JSON_PRETTY_PRINT);
-        file_put_contents("../../../data/users/groups/public_1/members.json", $users_b);
-
-        echo "done";
-    }
+    echo 'done';
 }

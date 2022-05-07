@@ -55,7 +55,7 @@ if (isset($_SESSION['status']) and $_SESSION['status'] === true) {
     // var_dump($user_db);
     // var_dump($public_info);
     // var_dump($public_members);
-    // var_dump($public_messages);
+    var_dump($public_messages);
     // var_dump($user_chats);
 
     //check if he user is admin or blocked
@@ -272,7 +272,7 @@ if (isset($_SESSION['status']) and $_SESSION['status'] === true) {
                                                                 <?php
                                                                 if ($admin === true) {
                                                                 ?>
-                                                                    <img name="<?= $message['ID'] ?>" onclick="message_popover_admin()" id="<?= $message['username'] ?>" class="h-5 cursor-pointer" src="resources/pics/kebab.png">
+                                                                    <img name="<?= $message['ID'] ?>" onclick="message_popover_admin()" id="<?= $message['from_id'] ?>" class="h-5 cursor-pointer" src="resources/pics/kebab.png">
 
                                                                 <?php
                                                                 }
