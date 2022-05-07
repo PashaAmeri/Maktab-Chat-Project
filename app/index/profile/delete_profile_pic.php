@@ -11,22 +11,39 @@ if (!empty($_POST)) {
 
     $image_number = in_check($_POST['image_id']);
 
-    $users_json = file_get_contents("../../../data/users/users.json");
-    $users_json = json_decode($users_json, true);
+    //connecting to db
 
-    foreach ($users_json as $user) {
+    $db_user = 'root';
+    $db_password = '1234';
 
-        if ($user['id'] === $_SESSION['id']) {
+    $db_host = 'localhost';
+    $db_name = 'chat_project';
 
-            unset($user['profile_pic'][$image_number]);
-            unset($_SESSION['profile_pic'][$image_number]);
-        }
+    $db_dsn = "mysql:host=" . $db_host . ";dbname=" . $db_name;
 
-        $users[] = $user;
-    }
+    $pdo = new PDO($db_dsn, $db_user, $db_password);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
-    $users = json_encode($users, JSON_PRETTY_PRINT);
-    $users = file_put_contents("../../../data/users/users.json", $users);
+    //deleting profile pic from db
+    $stm = $pdo->prepare("DELETE FROM `profile_pics` WHERE user_id = :id and ID = :pic_id");
+    $stm->execute(['id' => $_SESSION['id'], 'pic_id' => $image_number]);
+
+    // $users_json = file_get_contents("../../../data/users/users.json");
+    // $users_json = json_decode($users_json, true);
+
+    // foreach ($users_json as $user) {
+
+    //     if ($user['id'] === $_SESSION['id']) {
+
+    //         unset($user['profile_pic'][$image_number]);
+    //         unset($_SESSION['profile_pic'][$image_number]);
+    //     }
+
+    //     $users[] = $user;
+    // }
+
+    // $users = json_encode($users, JSON_PRETTY_PRINT);
+    // $users = file_put_contents("../../../data/users/users.json", $users);
 
     echo "1";
 }

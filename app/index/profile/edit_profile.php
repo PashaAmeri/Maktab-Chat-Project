@@ -4,6 +4,8 @@ require_once "../../functions/functions.php";
 require_once "../../functions/login-signup-fn.php";
 require_once "../../functions/index_fn.php";
 
+date_default_timezone_set("iran");
+
 ini_set('session.save_path', '../../../data/sessions');
 session_start();
 
@@ -18,25 +20,27 @@ if (isset($_POST['submit'])) {
     $phone_number = in_check($_POST['phone_number']);
     $nickname = in_check($_POST['nickname']);
 
-    if (!validation($about, 'about') or $phone_number == "") {
+    if (!validation($about, 'about') or $about == "") {
 
         if (empty($about)) {
 
-            $about = "";
+            $about = null;
         } else {
 
             header("location: ../../router/router.php");
+            exit;
         }
     }
 
-    if (!validation($nickname, 'nickname') or $phone_number == "") {
+    if (!validation($nickname, 'nickname') or $nickname == "") {
 
         if (empty($nickname)) {
 
-            $nickname = "";
+            $nickname = null;
         } else {
 
             header("location: ../../router/router.php");
+            exit;
         }
     }
 
@@ -44,16 +48,18 @@ if (isset($_POST['submit'])) {
 
         if (empty($phone_number)) {
 
-            $phone_number = "";
+            $phone_number = null;
         } else {
 
             header("location: ../../router/router.php");
+            exit;
         }
     }
 
     if (!validation($name, 'name') or !validation($username, 'username') or !validation($email, 'email')) {
 
         header("location: ../../router/router.php");
+        exit;
     } else {
 
         $profile_image_uploaded = false;
@@ -80,36 +86,36 @@ if (isset($_POST['submit'])) {
             } else {
 
                 header("location: ../../router/router.php");
+                exit;
             }
         }
 
-        $users_json = file_get_contents("../../../data/users/users.json");
-        $users_json = json_decode($users_json, true);
+        //connecting to db
 
-        foreach ($users_json as $user) {
+        $db_user = 'root';
+        $db_password = '1234';
 
+        $db_host = 'localhost';
+        $db_name = 'chat_project';
 
-            if ($user['id'] === $_SESSION['id']) {
+        $db_dsn = "mysql:host=" . $db_host . ";dbname=" . $db_name;
 
-                $user['user_name'] = $username;
-                $user['name'] = $name;
-                $user['phone_number'] = $phone_number;
-                $user['nickname'] = $nickname;
-                $user['email'] = $email;
-                $user['about'] = $about;
+        $pdo = new PDO($db_dsn, $db_user, $db_password);
+        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
-                if ($profile_image_uploaded) {
+        //get user data
+        $stm = $pdo->prepare("UPDATE `users` SET username = :username , name = :name , phone_number = :phone , nickname = :nickname , email = :email , about = :about WHERE ID = :user_id");
+        $stm->execute(['username' => $username, 'name' => $name, 'phone' => $phone_number, 'nickname' => $nickname, 'email' => $email, 'about' => $about, 'user_id' => $_SESSION['id']]);
 
-                    $user['profile_pic'][] = "$image_new_name.$image_name[1]";
-                }
-            }
+        if ($profile_image_uploaded) {
 
-            $users[] = $user;
+            $date = date("Y-m-d H:i:s");
+
+            $stm = $pdo->prepare("INSERT INTO profile_pics (`user_id` , `address` , `date`) VALUES (:user , :address , :date)");
+            $stm->execute(['user' => $_SESSION['id'], 'address' => "$image_new_name.$image_name[1]", 'date' => $date]);
         }
-
-        $users = json_encode($users, JSON_PRETTY_PRINT);
-        $users = file_put_contents("../../../data/users/users.json", $users);
 
         header("location: ../../router/router.php");
+        exit;
     }
 }

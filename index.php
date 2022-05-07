@@ -55,7 +55,7 @@ if (isset($_SESSION['status']) and $_SESSION['status'] === true) {
     // var_dump($user_db);
     // var_dump($public_info);
     // var_dump($public_members);
-    var_dump($public_messages);
+    // var_dump($public_messages);
     // var_dump($user_chats);
 
     //check if he user is admin or blocked
@@ -77,7 +77,6 @@ if (isset($_SESSION['status']) and $_SESSION['status'] === true) {
     }
 
     $user_dir = "data/users/users_files/$_SESSION[id]";
-    // $chats_dir = scandir("$user_dir/chats");
 
 ?>
 
@@ -300,7 +299,7 @@ if (isset($_SESSION['status']) and $_SESSION['status'] === true) {
                                                     <?php
                                                     if (!empty($_SESSION['profile_pic'])) {
                                                     ?>
-                                                        <img src="<?php echo "$user_dir/profile_pics/" . $_SESSION['profile_pic'][sizeof($_SESSION['profile_pic']) - 1] ?>" class="flex self-start justify-center h-10 w-10 rounded-full flex-shrink-0">
+                                                        <img src="<?php echo "$user_dir/profile_pics/" . $_SESSION['profile_pic'][sizeof($_SESSION['profile_pic']) - 1][0] ?>" class="flex self-start justify-center h-10 w-10 rounded-full flex-shrink-0">
                                                     <?php
                                                     } else {
                                                     ?>
@@ -476,7 +475,7 @@ if (isset($_SESSION['status']) and $_SESSION['status'] === true) {
                         <?php
                         if (!empty($_SESSION['profile_pic'])) {
                         ?>
-                            <img onclick="profile_slide_show()" src="<?php echo "$user_dir/profile_pics/" . $_SESSION['profile_pic'][sizeof($_SESSION['profile_pic']) - 1] ?>" class="cursor-pointer flex self-start justify-center h-28 w-28 rounded-full flex-shrink-0">
+                            <img onclick="profile_slide_show()" src="<?php echo "$user_dir/profile_pics/" . $_SESSION['profile_pic'][sizeof($_SESSION['profile_pic']) - 1][0] ?>" class="cursor-pointer flex self-start justify-center h-28 w-28 rounded-full flex-shrink-0">
                         <?php
                         } else {
                         ?>
@@ -579,7 +578,7 @@ if (isset($_SESSION['status']) and $_SESSION['status'] === true) {
                             <?php
                             if (!empty($_SESSION['profile_pic'])) {
                             ?>
-                                <img onclick="profile_slide_show()" src="<?php echo "$user_dir/profile_pics/" . $_SESSION['profile_pic'][sizeof($_SESSION['profile_pic']) - 1] ?>" class="cursor-pointer flex self-start justify-center h-28 w-28 rounded-full flex-shrink-0">
+                                <img onclick="profile_slide_show()" src="<?php echo "$user_dir/profile_pics/" . $_SESSION['profile_pic'][sizeof($_SESSION['profile_pic']) - 1][0] ?>" class="cursor-pointer flex self-start justify-center h-28 w-28 rounded-full flex-shrink-0">
                             <?php
                             } else {
                             ?>
@@ -722,11 +721,11 @@ if (isset($_SESSION['status']) and $_SESSION['status'] === true) {
                             <div id="picbox" class="hidden duration-700 ease-in-out" data-carousel-item>
 
                                 <span class="absolute top-1/2 left-1/2 text-2xl font-semibold text-white -translate-x-1/2 -translate-y-1/2 sm:text-3xl">First Slide</span>
-                                <img src="<?php echo "$user_dir/profile_pics/" . $pic ?>" class="block absolute top-1/2 left-1/2 w-full -translate-x-1/2 -translate-y-1/2" alt="...">
+                                <img src="<?php echo "$user_dir/profile_pics/" . $pic[0] ?>" class="block absolute top-1/2 left-1/2 w-full -translate-x-1/2 -translate-y-1/2" alt="...">
 
                                 <div id="options_img" class="w-full h-14 absolute bg-black top-0 opacity-60 flex justify-center gap-6 items-center">
 
-                                    <button id="<?= array_search($pic, $_SESSION['profile_pic']) ?>" onclick="delete_profile_pic(this)" class="cursor-pointer">
+                                    <button id="<?= $pic[1] ?>" onclick="delete_profile_pic(this)" class="cursor-pointer">
 
                                         <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="32" height="32" viewBox="0 0 172 172" style=" fill:#000000;">
                                             <g fill="none" fill-rule="nonzero" stroke="none" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" stroke-dasharray="" stroke-dashoffset="0" font-family="none" font-weight="none" font-size="none" text-anchor="none" style="mix-blend-mode: normal">
