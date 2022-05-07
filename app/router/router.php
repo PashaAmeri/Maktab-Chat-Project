@@ -50,7 +50,7 @@ if (isset($_COOKIE['user_token'])) {
 
         //get profile pics
 
-        $stm = $pdo->prepare("SELECT address FROM `profile_pics` WHERE user_id = ?");
+        $stm = $pdo->prepare("SELECT profile_pics.address , profile_pics.ID FROM `profile_pics` WHERE user_id = ?");
         $stm->execute([$token_db['user_id']]);
 
         var_dump($pics_db = $stm->fetchAll());
@@ -64,7 +64,7 @@ if (isset($_COOKIE['user_token'])) {
 
             foreach ($pics_db as $pic) {
 
-                $_SESSION["profile_pic"][] = $pic['address'];
+                $_SESSION["profile_pic"][] = [$pic['address'], $pic['ID']];
             }
         } else {
 
