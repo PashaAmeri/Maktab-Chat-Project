@@ -866,15 +866,17 @@ if (isset($_SESSION['status']) and $_SESSION['status'] === true) {
 
                         if (result !== "[]") {
 
+                            console.log(result);
+
                             let messages_json = JSON.parse(result);
 
                             for (message_json of messages_json) {
 
-                                $('#mesages_box').append(`<div id="${message_json['ID']}" class="col-start-1 col-end-8 p-3 rounded-lg"><div class="flex flex-row items-center"><span class="flex self-start items-center justify-center h-10 w-10 rounded-full bg-red-200 flex-shrink-0">${message_json['name'].substr(0, 1)}</span><div class="relative ml-3 text-md bg-white pb-2 px-4 shadow rounded-xl"><div><span class="text-xs text-gray-500 pt-1">${message_json['name']}</span></div><span>${message_json['message']}</span><div><span class="text-xs text-gray-500">${message_json['date']}</span></div></div></div></div>`);
-
+                                $('#mesages_box').append(`<div id="${message_json['message_number']}" class="col-start-1 col-end-8 p-3 rounded-lg"><div class="flex flex-row items-center"><span class="flex self-start items-center justify-center h-10 w-10 rounded-full bg-red-200 flex-shrink-0">${message_json['name'].substr(0, 1)}</span><div class="relative ml-3 text-md bg-white pb-2 px-4 shadow rounded-xl"><div><span class="text-xs text-gray-500 pt-1">${message_json['name']}</span></div><span>${message_json['message']}</span><div><span class="text-xs text-gray-500">${message_json['date']}</span></div></div></div></div>`);
                             }
-                            console.log(result);
                         }
+                        console.log(result);
+
                     },
 
                     error: function(err) {
