@@ -15,25 +15,24 @@ if (!empty($_POST)) {
 
     if (strlen($message) <= 100) {
 
-        $messages_json = file_get_contents("../../data/users/groups/public_1/messages.json");
-        $messages_json = json_decode($messages_json, true);
+        //connecting to db
 
-        $i = sizeof($messages_json);
-        $message_id = $messages_json[$i - 1];
+        $db_user = 'root';
+        $db_password = '1234';
 
-        $system_message_join = [
-            'id' => $_SESSION['id'],
-            'message_number' => ($message_id['message_number'] + 1),
-            'name' => $_SESSION['name'],
-            'username' => $_SESSION['username'],
-            "date" => $date,
-            'message' => $message,
-        ];
+        $db_host = 'localhost';
+        $db_name = 'chat_project';
 
-        $messages_json[] = $system_message_join;
+        $db_dsn = "mysql:host=" . $db_host . ";dbname=" . $db_name;
 
-        $messages_json = json_encode($messages_json, JSON_PRETTY_PRINT);
-        file_put_contents("../../data/users/groups/public_1/messages.json", $messages_json);
+        $pdo = new PDO($db_dsn, $db_user, $db_password);
+        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+
+        //put messages in db
+        $stm = $pdo->prepare("INSERT INTO `messages` (`from_id` , `to_id` , `message` , `date`) VALUES (:from , :to , :message , :date)");
+        $stm->execute(['from' => $_SESSION['id'], 'to' => '1', 'message' => $message, 'date' => $date]);
+
+        $user_db = $stm->fetch();
 
         echo "1";
     } else {

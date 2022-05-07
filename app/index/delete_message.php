@@ -9,23 +9,20 @@ if (!empty($_POST)) {
 
     $message_number = in_check($_POST['id']);
 
-    $messages_json = file_get_contents("../../data/users/groups/public_1/messages.json");
-    $messages_json = json_decode($messages_json, true);
+    //connecting to db
 
-    foreach ($messages_json as $message) {
+    $db_user = 'root';
+    $db_password = '1234';
 
-        if ($_SESSION['id'] === $message['id']) {
+    $db_host = 'localhost';
+    $db_name = 'chat_project';
 
-            if ($message['message_number'] != $message_number) {
+    $db_dsn = "mysql:host=" . $db_host . ";dbname=" . $db_name;
 
-                $out_put_messages[] = $message;
-            }
-        } else {
+    $pdo = new PDO($db_dsn, $db_user, $db_password);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
-            $out_put_messages[] = $message;
-        }
-    }
-
-    $out_put_messages = json_encode($out_put_messages, JSON_PRETTY_PRINT);
-    file_put_contents("../../data/users/groups/public_1/messages.json", $out_put_messages);
+    //deleting message from db
+    $stm = $pdo->prepare("DELETE FROM `messages` WHERE ID = :message_id AND from_id = :user");
+    $stm->execute(['message_id' => $message_number, 'user' => $_SESSION['id']]);
 }

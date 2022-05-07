@@ -8,39 +8,24 @@ session_start();
 var_dump($_POST['id']);
 
 if (isset($_POST['edit_to'])) {
-    
-    $i = 0;
 
     $message_number = in_check($_POST['id']);
     $new_message = in_check($_POST['edit_to']);
 
-    $messages_json = file_get_contents("../../data/users/groups/public_1/messages.json");
-    $messages_json = json_decode($messages_json, true);
+    //connecting to db
 
+    $db_user = 'root';
+    $db_password = '1234';
 
-    foreach ($messages_json as $message) {
+    $db_host = 'localhost';
+    $db_name = 'chat_project';
 
-        if ($message['message_number'] == $message_number and $message['id'] == $_SESSION['id']) {
+    $db_dsn = "mysql:host=" . $db_host . ";dbname=" . $db_name;
 
-            $edited = [
-                'id' => $_SESSION['id'],
-                'message_number' => $message['message_number'],
-                'name' => $_SESSION['name'],
-                'username' => $_SESSION['username'],
-                'date' => "2022-03-22 21:42:51",
-                'edit' => true,
-                'message' => $new_message
-            ];
+    $pdo = new PDO($db_dsn, $db_user, $db_password);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
-            $out_put_messages[] = $edited;
-        } else {
-
-            $out_put_messages[] = $message;
-        }
-
-        $i++;
-    }
-
-    $out_put_messages = json_encode($out_put_messages, JSON_PRETTY_PRINT);
-    file_put_contents("../../data/users/groups/public_1/messages.json", $out_put_messages);
+    //get user data
+    $stm = $pdo->prepare("UPDATE `messages` SET message = :new_message , edit = :edit WHERE ID = :id AND from_id = :user");
+    $stm->execute(['new_message' => $new_message, 'edit' => 1, 'id' => $message_number, 'user' => $_SESSION['id']]);
 }
