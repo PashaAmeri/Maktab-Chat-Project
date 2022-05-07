@@ -10,21 +10,59 @@ if (isset($_SESSION['status']) and $_SESSION['status'] === true) {
     $admin = false;
     $block = false;
 
-    $user_dir = "data/users/users_files/$_SESSION[id]";
-    $chats_dir = scandir("$user_dir/chats");
+    //connecting to db
 
-    $public_info = file_get_contents("data/users/groups/public_1/info.json");
-    $public_info = json_decode($public_info, true);
+    $db_user = 'root';
+    $db_password = '1234';
 
-    $public_members = file_get_contents("data/users/groups/public_1/members.json");
-    $public_members = json_decode($public_members, true);
+    $db_host = 'localhost';
+    $db_name = 'chat_project';
 
-    $public_messages = file_get_contents("data/users/groups/public_1/messages.json");
-    $public_messages = json_decode($public_messages, true);
+    $db_dsn = "mysql:host=" . $db_host . ";dbname=" . $db_name;
+
+    $pdo = new PDO($db_dsn, $db_user, $db_password);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+
+    //get user data
+    $stm = $pdo->prepare("SELECT * FROM `users` WHERE ID = ?");
+    $stm->execute([$_SESSION['id']]);
+
+    $user_db = $stm->fetch();
+
+    //get public chat data
+    $stm = $pdo->prepare("SELECT * FROM `chats` WHERE ID = ?");
+    $stm->execute(['1']);
+
+    $public_info = $stm->fetch();
+
+    //get public members
+    $stm = $pdo->prepare("SELECT * FROM `chats_members` WHERE chat_id = ?");
+    $stm->execute(['1']);
+
+    $public_members = $stm->fetchAll();
+
+    //get messages from public
+    $stm = $pdo->prepare("SELECT messages.ID , messages.from_id , messages.to_id , messages.message , messages.date , messages.edit , users.name , users.username , users.nickname FROM `messages` INNER JOIN `users` ON messages.to_id = :chat_id AND users.ID = messages.from_id");
+    $stm->execute(['chat_id' => '1']);
+
+    $public_messages = $stm->fetchAll();
+
+    $stm = $pdo->prepare("SELECT * FROM `chats` INNER JOIN `chats_members` ON chats_members.user_id = ?");
+    $stm->execute([$_SESSION['id']]);
+
+    $user_chats = $stm->fetchAll();
+
+    // var_dump($user_db);
+    // var_dump($public_info);
+    // var_dump($public_members);
+    // var_dump($public_messages);
+    // var_dump($user_chats);
+
+    //check if he user is admin or blocked
 
     foreach ($public_members as $member) {
 
-        if ($_SESSION['id'] === $member['id']) {
+        if ($_SESSION['id'] === $member['user_id']) {
 
             if ($member['role'] === "admin") {
 
@@ -37,6 +75,9 @@ if (isset($_SESSION['status']) and $_SESSION['status'] === true) {
             break;
         }
     }
+
+    $user_dir = "data/users/users_files/$_SESSION[id]";
+    // $chats_dir = scandir("$user_dir/chats");
 
 ?>
 
@@ -104,33 +145,22 @@ if (isset($_SESSION['status']) and $_SESSION['status'] === true) {
 
                                 $con_counter = 0;
 
-                                foreach ($chats_dir as $chat_file) {
+                                foreach ($user_chats as $chat) {
 
-                                    if ($chat_file === ".." or $chat_file === ".") {
-
-                                        continue;
-                                    }
-
-                                    $chats = file_get_contents("$user_dir/chats/$chat_file");
-                                    $chats = json_decode($chats, true);
-
-                                    foreach ($chats as $chat) {
-
-                                        $con_counter++;
+                                    $con_counter++;
                                 ?>
-                                        <button id="conversation_<?= $con_counter ?>" class="flex flex-row items-center hover:bg-gray-100 rounded-xl p-2">
+                                    <button id="conversation_<?= $con_counter ?>" class="flex flex-row items-center hover:bg-gray-100 rounded-xl p-2">
 
-                                            <span class="flex items-center justify-center h-8 w-8 bg-indigo-200 rounded-full">
+                                        <span class="flex items-center justify-center h-8 w-8 bg-indigo-200 rounded-full">
 
-                                                <?= substr($chat['name'], 0, 1) ?>
-                                            </span>
+                                            <?= substr($chat['name'], 0, 1) ?>
+                                        </span>
 
-                                            <span class="ml-2 text-sm font-semibold"><?= $chat['name'] ?></span>
+                                        <span class="ml-2 text-sm font-semibold"><?= $chat['name'] ?></span>
 
-                                        </button>
+                                    </button>
                                 <?php
 
-                                    }
                                 }
 
                                 ?>
@@ -189,10 +219,10 @@ if (isset($_SESSION['status']) and $_SESSION['status'] === true) {
 
                                     foreach ($public_messages as $message) {
 
-                                        if ($message['id'] === "system") {
+                                        if ($message['from_id'] === "0") {
 
                                     ?>
-                                            <div id="<?= $message['message_number'] ?>" class="col-start-1 col-end-13 p-1 justify-self-center rounded-full">
+                                            <div id="<?= $message['ID'] ?>" class="col-start-1 col-end-13 p-1 justify-self-center rounded-full">
 
                                                 <div class="flex flex-row items-center">
 
@@ -207,11 +237,12 @@ if (isset($_SESSION['status']) and $_SESSION['status'] === true) {
                                             </div>
 
                                         <?php
-                                        } elseif ($message['id'] !== $_SESSION['id']) {
+
+                                        } elseif ($message['from_id'] !== $_SESSION['id']) {
 
                                         ?>
 
-                                            <div id="<?= $message['message_number'] ?>" class="col-start-1 col-end-8 p-3 rounded-lg">
+                                            <div id="<?= $message['ID'] ?>" class="col-start-1 col-end-8 p-3 rounded-lg">
 
                                                 <div class="flex flex-row items-center">
 
@@ -232,7 +263,7 @@ if (isset($_SESSION['status']) and $_SESSION['status'] === true) {
                                                             <div id="edit" class="flex self-end justify-between w-full mt-2 gap-1">
 
                                                                 <span class="pr-4 text-xs text-gray-500"><?= message_date($message['date']) ?></span>
-                                                                <span id="edit_lable" class="text-xs text-gray-500 <?php if (isset($message['edit']) and $message['edit'] === true) {
+                                                                <span id="edit_lable" class="text-xs text-gray-500 <?php if ($message['edit'] === '1') {
                                                                                                                         echo "visible pr-1";
                                                                                                                     } else {
                                                                                                                         echo "invisible -mx-5";
@@ -241,7 +272,7 @@ if (isset($_SESSION['status']) and $_SESSION['status'] === true) {
                                                                 <?php
                                                                 if ($admin === true) {
                                                                 ?>
-                                                                    <img name="<?= $message['message_number'] ?>" onclick="message_popover_admin()" id="<?= $message['username'] ?>" class="h-5 cursor-pointer" src="resources/pics/kebab.png">
+                                                                    <img name="<?= $message['ID'] ?>" onclick="message_popover_admin()" id="<?= $message['username'] ?>" class="h-5 cursor-pointer" src="resources/pics/kebab.png">
 
                                                                 <?php
                                                                 }
@@ -262,7 +293,7 @@ if (isset($_SESSION['status']) and $_SESSION['status'] === true) {
                                         } else {
 
                                         ?>
-                                            <div id="<?= $message['message_number'] ?>" class="col-start-6 col-end-13 p-3 rounded-lg">
+                                            <div id="<?= $message['ID'] ?>" class="col-start-6 col-end-13 p-3 rounded-lg">
 
                                                 <div class="flex items-center justify-start flex-row-reverse">
 
@@ -284,8 +315,8 @@ if (isset($_SESSION['status']) and $_SESSION['status'] === true) {
 
                                                         <div id="edit" class="flex self-end justify-between w-full mt-2 gap-1">
 
-                                                            <img name="<?= $message['message_number'] ?>" onclick="message_popover()" id="popover" class="h-5 cursor-pointer" src="resources/pics/kebab.png">
-                                                            <span id="edit_lable" class="text-xs text-gray-500 <?php if (isset($message['edit']) and $message['edit'] === true) {
+                                                            <img name="<?= $message['ID'] ?>" onclick="message_popover()" id="popover" class="h-5 cursor-pointer" src="resources/pics/kebab.png">
+                                                            <span id="edit_lable" class="text-xs text-gray-500 <?php if ($message['edit'] === '1') {
                                                                                                                     echo "visible pr-1";
                                                                                                                 } else {
                                                                                                                     echo "invisible -mx-5";
@@ -839,7 +870,7 @@ if (isset($_SESSION['status']) and $_SESSION['status'] === true) {
 
                             for (message_json of messages_json) {
 
-                                $('#mesages_box').append(`<div id="${message_json['message_number']}" class="col-start-1 col-end-8 p-3 rounded-lg"><div class="flex flex-row items-center"><span class="flex self-start items-center justify-center h-10 w-10 rounded-full bg-red-200 flex-shrink-0">${message_json['name'].substr(0, 1)}</span><div class="relative ml-3 text-md bg-white pb-2 px-4 shadow rounded-xl"><div><span class="text-xs text-gray-500 pt-1">${message_json['name']}</span></div><span>${message_json['message']}</span><div><span class="text-xs text-gray-500">${message_json['date']}</span></div></div></div></div>`);
+                                $('#mesages_box').append(`<div id="${message_json['ID']}" class="col-start-1 col-end-8 p-3 rounded-lg"><div class="flex flex-row items-center"><span class="flex self-start items-center justify-center h-10 w-10 rounded-full bg-red-200 flex-shrink-0">${message_json['name'].substr(0, 1)}</span><div class="relative ml-3 text-md bg-white pb-2 px-4 shadow rounded-xl"><div><span class="text-xs text-gray-500 pt-1">${message_json['name']}</span></div><span>${message_json['message']}</span><div><span class="text-xs text-gray-500">${message_json['date']}</span></div></div></div></div>`);
 
                             }
                             console.log(result);
